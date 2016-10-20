@@ -34,34 +34,42 @@ def buildModel(stringToEncode):
     model.fromkeys(charList)
     for c, v in charList.items():
         width = mpf(charList[c]/count)
-        model[c] = ( start, width)
+        model[c] = (start, width)
         start += charList[c]/count
 
 
 def encode(stringToEncode):
     buildModel(stringToEncode)
     encodedFile = open(ENCODED_FILE_NAME, 'w')
-    high = 1.0
-    low = 0.0
+    mp.dps = count * count
+    high = mpf(1.0)
+    low = mpf(0.0)
+    global ultimateRange
     for c in stringToEncode:
-        d_start, d_width = model[c]
-        d_range = high - low
-        low += d_start * d_range
-        high = low + (d_range * (d_start + d_width)
+        c_start, c_width = model[c]
+        c_end = c_start + c_width
+        d_range = mpf(high - low)
+        ultimateRange = mpf(d_range)
+        high = low + (c_end * d_range)
+        low = low + (c_start * d_range)
+
     encodedFile.write(str(low + (high-low)/2))
-    return (low + (high-low)/2)
+    return low + (high-low)/2
 
 def decode(encodedNumber):
     decodedFile = open(DECODED_FILE_NAME, 'w')
+    mp.dps = count * count
     string = []
-    high = 1.0
-    low = 0.0
-    for i in range(0, count):
-        for c, (c_low, c_high) in model.items():
-            d_range = high - low
+    high = mpf(1.0)
+    low = mpf(0.0)
+    d_range = mpf(high - low)
+    while (d_range > ultimateRange):
+        for c, (c_low, c_width) in model.items():
+            c_high = mpf(c_low + c_width)
+            d_range = mpf(high - low)
             if c_low <= (encodedNumber - low)/d_range < c_high:
                 high = low + (d_range * c_high)
-                low += (d_range * c_low)
+                low = low + (d_range * c_low)
                 string.append(c)
                 decodedFile.write(c)
                 break
