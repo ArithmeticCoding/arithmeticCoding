@@ -45,18 +45,23 @@ def encode(stringToEncode):
     low = 0.0
     for c in stringToEncode:
         d_start, d_width = model[c]
-        low += d_start * high
-        high *= d_width
-    encodedFile.write(str((2*low+high)/2))
-    return (2*low + high)/2
+        d_range = high - low
+        low += d_start * d_range
+        high = low + (d_range * (d_start + d_width)
+    encodedFile.write(str(low + (high-low)/2))
+    return (low + (high-low)/2)
 
 def decode(encodedNumber):
     decodedFile = open(DECODED_FILE_NAME, 'w')
     string = []
+    high = 1.0
+    low = 0.0
     for i in range(0, count):
-        for c, (low, high) in model.items():
-            if 0 <= encodedNumber - low < high:
-                encodedNumber = (encodedNumber - low) / high
+        for c, (c_low, c_high) in model.items():
+            d_range = high - low
+            if c_low <= (encodedNumber - low)/d_range < c_high:
+                high = low + (d_range * c_high)
+                low += (d_range * c_low)
                 string.append(c)
                 decodedFile.write(c)
                 break
