@@ -28,8 +28,10 @@ def buildModel(stringToEncode):
             charList[c] += 1
         else:
             charList[c] = 1
+
     #dps has to be longer in order to correctly encode and decode loger messages
     #not sure how to calculate correct lenght
+
     mp.dps = count+1
     model.fromkeys(charList)
     for c, v in charList.items():
@@ -57,6 +59,7 @@ def encode(stringToEncode):
     return low + (high-low)/2
 
 def decode(encodedNumber):
+
     decodedFile = open(DECODED_FILE_NAME, 'w')
     mp.dps = count * count
     string = []
@@ -77,6 +80,7 @@ def decode(encodedNumber):
 
 
 def main():
+    
     stringToEncode = input()
     encodedNumber = encode(stringToEncode)
     decodedString = decode(encodedNumber)
