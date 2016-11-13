@@ -361,10 +361,8 @@ def read_encoded_bits():
 
 def main():
 
-    #encode file (input, output)
-    encode_file('input.txt', 'decoded2.txt')
-    # decode file (input, output)
-    decode_file('decoded2.txt', 'decoded_v2.txt')
+    encode_file('input.txt', 'encoded_v2.txt')
+    decode_file('encoded_v2.txt', 'decoded_v2.txt')
 
 if __name__ == '__main__':
     main()
