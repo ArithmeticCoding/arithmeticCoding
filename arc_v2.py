@@ -14,10 +14,6 @@ def get_upper(c):
         return ord(c) + 1
     return c + 1
 
-
-
-
-
 EOF_CHAR = 256
 
 # number of bits used to compute running code values
@@ -48,9 +44,6 @@ def encode_file(input_file_name, output_file_name):
     global infile
     global outfile
 
-    if (infile is not None) or (outfile is not None):
-        raise ValueError('I/O operation on opened file.')
-
     # read through input file and compute ranges
     infile = open(input_file_name, 'rb')
     build_probability_range_list()
@@ -77,7 +70,6 @@ def encode_file(input_file_name, output_file_name):
 
 def build_probability_range_list():
 
-    global infile
     global cumulative_prob
     global ranges
 
@@ -110,7 +102,6 @@ def build_probability_range_list():
 
 def symbol_count_to_probability_ranges():
 
-
     global cumulative_prob
     global ranges
 
@@ -122,12 +113,6 @@ def symbol_count_to_probability_ranges():
         ranges[c + 1] += ranges[c]
 
 def write_header():
-
-    global outfile
-    global upper
-    global ranges
-
-
     previous = 0
 
     for c in xrange(EOF_CHAR):
@@ -150,12 +135,8 @@ def write_header():
 
 
 def apply_symbol_range(symbol):
-
-    global infile
-    global outfile
     global lower
     global upper
-    global cumulative_prob
 
     range = upper - lower + 1           # current range
 
@@ -176,8 +157,6 @@ def apply_symbol_range(symbol):
 
 
 def write_encoded_bits():
-
-    global outfile
     global lower
     global upper
     global underflow_bits
@@ -209,10 +188,6 @@ def write_encoded_bits():
         upper |= 0x0001
 
 def write_remaining():
-
-    global outfile
-    global lower
-    global upper
     global underflow_bits
 
     mask_bit_one = mask_bit(1)
@@ -262,8 +237,6 @@ def decode_file(input_file_name, output_file_name):
     infile.close()
 
 def read_header():
-
-    global infile
     global cumulative_prob
     global ranges
 
@@ -290,7 +263,6 @@ def read_header():
     symbol_count_to_probability_ranges()
 
 def initialize_decoder():
-    global infile
     global lower
     global upper
     global code
@@ -316,11 +288,6 @@ def initialize_decoder():
     upper = 0xFFFF        # all ones
 
 def get_unscaled_code():
-
-    global lower
-    global upper
-    global cumulative_prob
-    global code
     range = upper - lower + 1
 
     # reverse the scaling operations from apply_symbol_range
@@ -330,8 +297,6 @@ def get_unscaled_code():
     return unscaled
 
 def get_symbol_from_probability(probability):
-
-    global ranges
     # initialize indices for binary search
     first = 0
     last = get_upper(EOF_CHAR)
@@ -359,6 +324,7 @@ def read_encoded_bits():
     global lower
     global upper
     global code
+
     mask_bit_zero = mask_bit(0)
     mask_bit_one = mask_bit(1)
 
@@ -395,7 +361,9 @@ def read_encoded_bits():
 
 def main():
 
+    #encode file (input, output)
     encode_file('input.txt', 'decoded2.txt')
+    # decode file (input, output)
     decode_file('decoded2.txt', 'decoded_v2.txt')
 
 if __name__ == '__main__':
