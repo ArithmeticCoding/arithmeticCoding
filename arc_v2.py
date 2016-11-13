@@ -1,5 +1,18 @@
-import bitfile
+'''
+ - Author:  Group A
+ - Course:  CSE 4081, Fall 2016
+ - Project: Group Project, Arithmetic Coding
 
+ This is the arithmetic coding using binary coding to produce smaller
+ compressed files.
+ Outputs two text files, one with the encoding and one after the decoding
+
+ Most of this is based off of the arcode package written by mdipperstein
+ from the Python library
+ This must be run with Python 2.7 with the BitFile library installed
+'''
+
+import bitfile
 
 def mask_bit(x):
     return (1 << (PRECISION - (1 + x)))
@@ -17,16 +30,19 @@ def get_upper(c):
 EOF_CHAR = 256
 
 # number of bits used to compute running code values
+# probability ranges must be scaled to PRECISION - 2 bits to avoid
+# upper and lower bounds from crossing
 PRECISION = 16
 
 # mask to clear the msb of probability values
+# MSB - Most Significant Bit
 MSB_MASK = ((1 << (PRECISION - 1)) - 1)
 
 # 2 bits less than precision. keeps lower and upper bounds from crossing
 MAX_PROBABILITY = (1 << (PRECISION - 2))
 
-lower = 0  # lower bound of current code range
-upper = 0xFFFF  # upper bound of current code range
+lower = 0  # lower bound of current code range ~0
+upper = 0xFFFF  # upper bound of current code range ~1
 
 code = 0  # current MSBs of encode input stream
 
@@ -36,50 +52,55 @@ underflow_bits = 0  # current underflow bit count
 ranges = [0 for i in xrange(get_upper(EOF_CHAR) + 1)]
 cumulative_prob = 0  # cumulative probability  of all ranges
 
-infile = None
-outfile = None
+input_file = None
+output_file = None
 
 def encode_file(input_file_name, output_file_name):
 
-    global infile
-    global outfile
+    global input_file
+    global output_file
 
     # read through input file and compute ranges
-    infile = open(input_file_name, 'rb')
+    input_file = open(input_file_name, 'rb')
     build_probability_range_list()
-    infile.seek(0)
+    input_file.seek(0)
 
     # write header with ranges to output file
-    outfile = bitfile.BitFile()
-    outfile.open(output_file_name, 'wb')
+    # ranges must be in header or be stored elsewhere
+    # for using an adaptive model, ranges in the header are easier
+    output_file = bitfile.BitFile()
+    output_file.open(output_file_name, 'wb')
     write_header()
 
     # encode file 1 byte at at time
-    c = infile.read(1)
+    c = input_file.read(1)
     while (c != ''):
         apply_symbol_range(c)
         write_encoded_bits()
-        c = infile.read(1)
+        c = input_file.read(1)
 
-    infile.close()
-    apply_symbol_range(EOF_CHAR)   # encode an EOF
+    input_file.close()
+    # encode an EOF to signify the end of data
+    apply_symbol_range(EOF_CHAR)
     write_encoded_bits()
 
-    write_remaining()              # write out least significant bits
-    outfile.close()
+    # write the least significant bits
+    write_remaining()
+    # close the encoded file
+    output_file.close()
 
 def build_probability_range_list():
-
     global cumulative_prob
     global ranges
 
-    # start with no symbols counted
+    # set array to 0 for all values
     count_array = [0 for i in xrange(EOF_CHAR)]
 
-    c = infile.read(1)
+    c = input_file.read(1)
     while (c != ''):
+        # at the ASCII/Unicode value of c, increase the count
         count_array[ord(c)] += 1
-        c = infile.read(1)
+        c = input_file.read(1)
 
     total_count = sum(count_array)
 
@@ -101,7 +122,6 @@ def build_probability_range_list():
     symbol_count_to_probability_ranges()
 
 def symbol_count_to_probability_ranges():
-
     global cumulative_prob
     global ranges
 
@@ -118,20 +138,20 @@ def write_header():
     for c in xrange(EOF_CHAR):
         if ranges[get_upper(c)] > previous:
             # some of these symbols will be encoded
-            outfile.put_char(c)
+            output_file.put_char(c)
             # calculate symbol count
             previous = (ranges[get_upper(c)] - previous)
 
             # write out PRECISION - 2 bit count
-            outfile.put_bits_ltom(previous, (PRECISION - 2))
+            output_file.put_bits_ltom(previous, (PRECISION - 2))
 
             # current upper range is previous for the next character
             previous = ranges[get_upper(c)]
 
     # now write end of table (zero count)
-    outfile.put_char(0)
+    output_file.put_char(0)
     previous = 0
-    outfile.put_bits_ltom(previous, (PRECISION - 2))
+    output_file.put_bits_ltom(previous, (PRECISION - 2))
 
 
 def apply_symbol_range(symbol):
@@ -154,8 +174,6 @@ def apply_symbol_range(symbol):
     # new lower = old lower + rescaled new lower
     lower = lower + rescaled
 
-
-
 def write_encoded_bits():
     global lower
     global upper
@@ -167,11 +185,11 @@ def write_encoded_bits():
     while True:
         if (upper ^ ~lower) & mask_bit_zero:
             # MSBs match, write them to output file
-            outfile.put_bit((upper & mask_bit_zero) != 0)
+            output_file.put_bit((upper & mask_bit_zero) != 0)
 
             # we can write out underflow bits too
             while underflow_bits > 0:
-                outfile.put_bit((upper & mask_bit_zero) == 0)
+                output_file.put_bit((upper & mask_bit_zero) == 0)
                 underflow_bits -= 1
 
         elif (~upper & lower) & mask_bit_one:
@@ -191,30 +209,27 @@ def write_remaining():
     global underflow_bits
 
     mask_bit_one = mask_bit(1)
-    outfile.put_bit((lower & mask_bit_one) != 0)
+    output_file.put_bit((lower & mask_bit_one) != 0)
 
     # write out any unwritten underflow bits
     underflow_bits += 1
     for i in xrange(underflow_bits):
-        outfile.put_bit((lower & mask_bit_one) == 0)
+        output_file.put_bit((lower & mask_bit_one) == 0)
 
 def decode_file(input_file_name, output_file_name):
-
-    global infile
-    global outfile
-
+    global input_file
+    global output_file
 
     # open input and build probability ranges from header in file
-    infile = bitfile.BitFile()
-    infile.open(input_file_name, 'rb')
-
+    input_file = bitfile.BitFile()
+    input_file.open(input_file_name, 'rb')
 
     read_header()  # build probability ranges from header in file
 
     # read start of code and initialize bounds
     initialize_decoder()
 
-    outfile = open(output_file_name, 'wb')
+    output_file = open(output_file_name, 'wb')
 
     # decode one symbol at a time
     while True:
@@ -227,14 +242,14 @@ def decode_file(input_file_name, output_file_name):
             # no more symbols
             break
 
-        outfile.write(chr(c))
+        output_file.write(chr(c))
 
         # factor out symbol
         apply_symbol_range(c)
         read_encoded_bits()
 
-    outfile.close()
-    infile.close()
+    output_file.close()
+    input_file.close()
 
 def read_header():
     global cumulative_prob
@@ -246,10 +261,10 @@ def read_header():
 
     # read [character, probability] sets
     while True:
-        c = infile.get_char()
+        c = input_file.get_char()
 
         # read (PRECISION - 2) bit count
-        count = infile.get_bits_ltom(PRECISION - 2)
+        count = input_file.get_bits_ltom(PRECISION - 2)
 
         if count == 0:
             # 0 count means end of header
@@ -274,7 +289,7 @@ def initialize_decoder():
         code <<= 1
 
         try:
-            next_bit = infile.get_bit()
+            next_bit = input_file.get_bit()
         except EOFError:
             # Encoded file out of data bits, just shift bits.
             pass
@@ -350,7 +365,7 @@ def read_encoded_bits():
         code <<= 1
 
         try:
-            next_bit = infile.get_bit()
+            next_bit = input_file.get_bit()
         except EOFError:
             pass        # either out of bits or error occurred.
         except:
