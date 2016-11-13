@@ -1,0 +1,15 @@
+1. I used a java program to produce 5 random strings as the inputs,the lengths of these strings are: 10, 100, 1000, 10000, 100000
+2. I added some lines into the original code(arc.py) as a test program named Testarc.py, when I run this program, I can get
+   running time usages of the encoding and decoding ,and the memory usages of the encoding and decoing
+3. For each string with particular length, I excuted the same test program by using the same input.txt for 10 times, and stored
+   the output values into an excel document and then calculated the average running time usages and average memory usages.
+   Concrete details are in the excel document named table.
+4. I also uploaded some run time pictures, the test command is a little different,since I have to test the memory usages:
+   concrete details are in the run time pictures(please follow the first command line if you want test it).
+5. I created a fold named String Test examples to store the input documents and every encode.txt and decode.txt, by comparing with them, 
+   we can make sure that the code is correct.(The original input document is the same as decode.txt after excuting the Arithmetic code)
+6. I also ploted two figures, and find that:
+   a.The Time complexity of the encode function is O(n);
+   b.The Time complexity of the decode function is O(n);
+7. By observing the table ,we can see that the memory usages almost dosen't change even though the length of the document changes.
+   Thus: for both the encode function and the decode function, the space complexity is O(1).
